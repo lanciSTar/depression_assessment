@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>抑郁评估系统 - 管理后台</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: system-ui; margin: 0; padding: 20px; background: #f5f7fa; }
+        .login-container, .admin-container { max-width: 1200px; margin: 0 auto; background: white; border-radius: 16px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
+        th { background: #3498db; color: white; }
+        button { margin: 5px; padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; }
+        .edit-btn { background: #f39c12; color: white; }
+        .delete-btn { background: #e74c3c; color: white; }
+        .save-btn { background: #2ecc71; color: white; }
+        .view-chat-btn { background: #3498db; color: white; }
+        .logout-btn { background: #95a5a6; margin-bottom: 20px; }
+        input, select { padding: 4px 8px; width: 100%; box-sizing: border-box; }
+        
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 800px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover { color: black; }
+        .chat-messages {
+            max-height: 500px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        .chat-message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 10px;
+            background: #f1f1f1;
+        }
+        .chat-message.user {
+            background: #e3f2fd;
+            border-left: 4px solid #3498db;
+        }
+        .chat-message.assistant {
+            background: #e8f5e9;
+            border-left: 4px solid #2ecc71;
+        }
+        .message-role {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .message-time {
+            font-size: 0.75rem;
+            color: #777;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+<div id="loginPanel" class="login-container" style="max-width: 400px; margin-top: 100px;">
+    <h2>管理员登录</h2>
+    <input type="text" id="username" placeholder="用户名" style="width:100%; padding:10px; margin:10px 0">
+    <input type="password" id="password" placeholder="密码" style="width:100%; padding:10px; margin:10px 0">
+    <button id="loginBtn" class="save-btn">登录</button>
+</div>
+
+<div id="adminPanel" style="display: none;">
+    <div class="admin-container">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2><i class="fas fa-database"></i> 评估记录管理</h2>
+            <button id="logoutBtn" class="logout-btn"><i class="fas fa-sign-out-alt"></i> 退出</button>
+        </div>
+        <table id="dataTable">
+            <thead>
+                <tr><th>ID</th><th>姓名</th><th>年龄</th><th>性别</th><th>SDS分</th><th>HAMD总分</th><th>加权分</th><th>抑郁等级</th><th>建议</th><th>对话数</th><th>操作</th><th>对话详情</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+<!-- AI辅助生成：DeepSeek 2026-4-19 -->
+<!-- 对话详情模态框 -->
+<div id="chatModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3>患者对话记录</h3>
+        <div id="chatModalBody" class="chat-messages">
+            <!-- 动态加载对话 -->
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentModalAssessmentId = null;
+
+    async function login() {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const auth = btoa(`${username}:${password}`);
+        try {
+            const res = await fetch('/api/admin/login', {
+                method: 'POST',
+                headers: { 'Authorization': `Basic ${auth}` }
+            });
+            if (res.ok) {
+                document.getElementById('loginPanel').style.display = 'none';
+                document.getElementById('adminPanel').style.display = 'block';
+                loadData();
+            } else {
+                alert('登录失败');
+            }
+        } catch(e) { alert('网络错误'); }
+    }
+    document.getElementById('loginBtn').onclick = login;
+    document.getElementById('logoutBtn').onclick = () => {
+        document.getElementById('adminPanel').style.display = 'none';
+        document.getElementById('loginPanel').style.display = 'block';
+        document.getElementById('username').value = '';
+        document.getElementById('password').value = '';
+    };
+
+    async function loadData() {
+        const res = await fetch('/api/admin/assessments');
+        const data = await res.json();
+        const tbody = document.querySelector('#dataTable tbody');
+        tbody.innerHTML = '';
+        for (let row of data) {
+            const tr = document.createElement('tr');
+            tr.dataset.id = row.id;
+            tr.innerHTML = `
+                <td>${row.id}</td>
+                <td contenteditable="true" class="edit-field" data-field="patient_name">${row.patient_name || ''}</td>
+                <td contenteditable="true" class="edit-field" data-field="patient_age">${row.patient_age || ''}</td>
+                <td><select class="gender-select" data-field="patient_gender">
+                    <option ${row.patient_gender === '男' ? 'selected' : ''}>男</option>
+                    <option ${row.patient_gender === '女' ? 'selected' : ''}>女</option>
+                </select></td>
+                <td>${row.sds_raw_score ?? ''}</td>
+                <td>${row.hamd_total ?? ''}</td>
+                <td>${row.weighted_score ?? ''}</td>
+                <td><input type="text" class="edit-input" data-field="depression_level" value="${row.depression_level || ''}"></td>
+                <td><input type="text" class="edit-input" data-field="advice" value="${row.advice || ''}"></td>
+                <td>${row.chat_count || 0}</td>
+                <td>
+                    <button class="save-row-btn">保存</button>
+                    <button class="delete-row-btn">删除</button>
+                </td>
+                <td><button class="view-chat-btn" data-id="${row.id}">查看对话</button></td>
+            `;
+            tbody.appendChild(tr);
+        }
+        attachEvents();
+    }
+
+    function attachEvents() {
+        // 保存按钮事件
+        document.querySelectorAll('.save-row-btn').forEach(btn => {
+            btn.onclick = async (e) => {
+                const tr = e.target.closest('tr');
+                const id = tr.dataset.id;
+                const updates = {};
+                tr.querySelectorAll('.edit-field').forEach(cell => {
+                    const field = cell.dataset.field;
+                    updates[field] = cell.innerText.trim();
+                });
+                tr.querySelectorAll('.edit-input').forEach(input => {
+                    const field = input.dataset.field;
+                    updates[field] = input.value.trim();
+                });
+                const genderSelect = tr.querySelector('.gender-select');
+                if (genderSelect) updates['patient_gender'] = genderSelect.value;
+                const res = await fetch(`/api/admin/assessment/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updates)
+                });
+                if (res.ok) alert('保存成功');
+                else alert('保存失败');
+            };
+        });
+        // 删除按钮事件
+        document.querySelectorAll('.delete-row-btn').forEach(btn => {
+            btn.onclick = async (e) => {
+                if (!confirm('确定删除该记录？关联对话也将删除')) return;
+                const tr = e.target.closest('tr');
+                const id = tr.dataset.id;
+                const res = await fetch(`/api/admin/assessment/${id}`, { method: 'DELETE' });
+                if (res.ok) tr.remove();
+                else alert('删除失败');
+            };
+        });
+        // 查看对话按钮事件
+        document.querySelectorAll('.view-chat-btn').forEach(btn => {
+            btn.onclick = async (e) => {
+                const assessmentId = btn.dataset.id;
+                await showChatModal(assessmentId);
+            };
+        });
+    }
+
+    // 显示对话模态框
+    async function showChatModal(assessmentId) {
+        try {
+            const response = await fetch(`/api/chat_history/${assessmentId}`);
+            if (!response.ok) throw new Error('获取对话失败');
+            const messages = await response.json();
+            const modalBody = document.getElementById('chatModalBody');
+            modalBody.innerHTML = '';
+            if (messages.length === 0) {
+                modalBody.innerHTML = '<p>暂无对话记录</p>';
+            } else {
+                messages.forEach(msg => {
+                    const msgDiv = document.createElement('div');
+                    msgDiv.className = `chat-message ${msg.role}`;
+                    const roleLabel = msg.role === 'user' ? '患者' : 'AI助手';
+                    const time = new Date(msg.created_at).toLocaleString('zh-CN');
+                    msgDiv.innerHTML = `
+                        <div class="message-role">${roleLabel}</div>
+                        <div class="message-content">${escapeHtml(msg.message)}</div>
+                        <div class="message-time">${time}</div>
+                    `;
+                    modalBody.appendChild(msgDiv);
+                });
+            }
+            document.getElementById('chatModal').style.display = 'block';
+            currentModalAssessmentId = assessmentId;
+        } catch (err) {
+            console.error(err);
+            alert('加载对话失败');
+        }
+    }
+
+    // 关闭模态框
+    document.querySelector('.close').onclick = () => {
+        document.getElementById('chatModal').style.display = 'none';
+    };
+    window.onclick = (event) => {
+        const modal = document.getElementById('chatModal');
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    };
+
+    function escapeHtml(text) {
+        return text.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+</script>
+</body>
+</html>

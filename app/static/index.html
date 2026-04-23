@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>抑郁程度智能评估系统 | 语音分析</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head> 
+<body>
+<div class="container">
+
+    <!-- 患者信息模态框（页面加载时自动显示） -->
+    <div id="infoModal" class="modal">
+        <div class="modal-content">
+            <h2><i class="fas fa-user-plus"></i> 患者基本信息</h2>
+            <input type="text" id="patientName" placeholder="请输入姓名" required>
+            <input type="number" id="patientAge" placeholder="请输入年龄" min="1" max="200" required>
+            <select id="patientGender">
+                <option value="">请选择性别</option>
+                <option value="男">男</option>
+                <option value="女">女</option>
+            </select>
+            <button id="saveInfoBtn" class="btn-primary">
+                <i class="fas fa-check"></i> 开始评估
+            </button>
+        </div>
+    </div>
+
+    <!-- 主内容（初始隐藏，提交信息后显示） -->
+    <div id="mainContent" class="main-content hidden">
+        <!-- 头部 -->
+        <header class="header">
+            <h1><i class="fas fa-brain"></i> 抑郁程度智能评估系统</h1>
+            <p class="subtitle">基于语音 + 文字多模态分析 · 诊前分诊参考</p>
+        </header>
+
+        <!-- 固定问题 -->
+        <div class="fixed-question">
+            <i class="fas fa-quote-left"></i>您好，为了帮您更好地了解近期的身心状态，请您回想最近这一两周的情况，把你整个人整体的状态跟我简单说一说：包括心情怎么样、有没有特别累或提不起劲、睡眠和胃口好不好、身体有没有不舒服、会不会容易紧张烦躁、对自己或未来的看法有什么变化，等等，想到什么说什么就好。
+        </div>
+
+        <!-- 模式选择 -->
+        <div class="mode-toggle">
+            <div class="mode-option active" data-mode="upload">
+                <i class="fas fa-upload"></i> 上传音频
+            </div>
+            <div class="mode-option" data-mode="record">
+                <i class="fas fa-microphone"></i> 实时录音
+            </div>
+        </div>
+
+        <!-- 上传模式 -->
+        <div id="uploadMode" class="mode-content active">
+            <div class="upload-card">
+                <div class="upload-icon">
+                    <i class="fas fa-file-audio"></i>
+                </div>
+                <h3>上传音频文件</h3>
+                <p class="upload-hint">支持 WAV, MP3, M4A 格式，建议时长 1-3 分钟</p>
+                
+                <div class="upload-area">
+                    <label for="audioInput" class="file-input-label">
+                        <i class="fas fa-folder-open"></i> 选择音频文件
+                        <input type="file" id="audioInput" accept="audio/*, .wav, .mp3, .m4a" hidden>
+                    </label>
+                    <div id="fileName" class="file-name">未选择文件</div>
+                </div>
+                
+                <button id="uploadBtn" class="btn-primary btn-upload">
+                    <i class="fas fa-cloud-upload-alt"></i> 上传并评估
+                </button>
+            </div>
+        </div>
+
+        <!-- 录音模式 -->
+        <div id="recordMode" class="mode-content">
+            <div class="record-card">
+                <div class="record-icon">
+                    <i class="fas fa-microphone-alt"></i>
+                </div>
+                <h3>实时录音</h3>
+                <p class="record-hint">点击开始录音，建议清晰讲述 1-2 分钟</p>
+                
+                <div class="record-controls">
+                    <button id="startRecordBtn" class="btn-record">
+                        <i class="fas fa-circle"></i> 开始录音
+                    </button>
+                    <button id="stopRecordBtn" class="btn-stop" disabled>
+                        <i class="fas fa-stop"></i> 停止录音
+                    </button>
+                    <button id="playRecordBtn" class="btn-play" disabled>
+                        <i class="fas fa-play"></i> 播放
+                    </button>
+                </div>
+                
+                <!-- 录音状态 -->
+                <div id="recordingStatus" class="recording-status">
+                    <div class="recording-indicator">
+                        <div class="recording-dot"></div>
+                        <span class="recording-text">录音中...</span>
+                    </div>
+                    <div class="recording-timer">
+                        <i class="fas fa-clock"></i>
+                        <span id="timeDisplay">00:00</span>
+                    </div>
+                </div>
+                
+                <!-- 音频预览 -->
+                <div id="audioPreviewContainer" class="audio-preview-container">
+                    <p class="preview-title"><i class="fas fa-headphones"></i> 录音预览</p>
+                    <audio id="audioPreview" controls class="audio-player"></audio>
+                </div>
+                
+                <button id="analyzeRecordBtn" class="btn-primary btn-analyze" disabled>
+                    <i class="fas fa-chart-line"></i> 分析录音
+                </button>
+            </div>
+        </div>
+
+        <!-- 加载状态 -->
+        <div id="loading" class="loading-container hidden">
+            <div class="loading-spinner">
+                <div class="spinner"></div>
+                <div class="spinner-ring"></div>
+            </div>
+            <h3>正在智能分析中...</h3>
+            <p>系统正在处理音频，进行多模态分析，请稍候</p>
+            <div class="loading-steps">
+                <div class="step active">语音转写</div>
+                <div class="step">情绪分析</div>
+                <div class="step">生成报告</div>
+            </div>
+        </div>
+        <!-- 错误提示 -->
+        <div id="error" class="error-container hidden">
+            <div class="error-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h3>评估失败</h3>
+            <p id="errorMessage">--</p>
+            <button class="btn-secondary" id="retryBtn">
+                <i class="fas fa-sync-alt"></i> 重试
+            </button>
+        </div>
+        <!-- 结果展示 -->
+        <div id="result" class="result-container hidden">
+            <div class="result-header">
+                <h2><i class="fas fa-chart-bar"></i> 评估结果报告</h2>
+                <div class="report-time" id="reportTime"></div>
+            </div>
+            
+            <!-- 综合得分卡片 -->
+            <div class="score-card comprehensive">
+                <div class="score-header">
+                    <h3><i class="fas fa-star"></i> 综合评估</h3>
+                    <div class="score-badge" id="levelBadge">--</div>
+                </div>
+                <div class="score-content">
+                    <div class="score-item">
+                        <div class="score-label">综合得分</div>
+                        <div class="score-value" id="compScore">--</div>
+                    </div>
+                    <div class="score-item">
+                        <div class="score-label">抑郁等级</div>
+                        <div class="score-level" id="level">--</div>
+                    </div>
+                </div>
+                <div class="advice-box">
+                    <h4><i class="fas fa-lightbulb"></i> 初步建议</h4>
+                    <p id="advice">--</p>
+                </div>
+            </div>
+
+            <!-- 详细数据 -->
+            <div class="details-card">
+                <h3><i class="fas fa-clipboard-list"></i> 详细数据</h3>
+                <div class="details-grid">
+                    <div class="detail-item">
+                        <div class="detail-label">SDS原始分</div>
+                        <div class="detail-value" id="sdsRaw">--</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">HAMD总分</div>
+                        <div class="detail-value" id="hamdTotal">--</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">HAMD等级</div>
+                        <div class="detail-value" id="hamdLevel">--</div>
+                    </div>
+                </div>
+                
+                <!-- 转写文本 -->
+                <div class="transcription-box">
+                    <h4><i class="fas fa-comment-alt"></i> 转写文本</h4>
+                    <div class="transcription-content" id="text">--</div>
+                </div>
+                
+                <!-- HAMD 量表介绍 -->
+                <div class="hamd-intro-box">
+                    <i class="fas fa-info-circle"></i> 
+                    <strong>关于 HAMD-17 量表</strong><br>
+                    汉密尔顿抑郁量表（HAMD-17）是临床用于量化抑郁症状严重程度的标准化他评工具，需由受训专业人员通过访谈与观察完成评估。量表共17个条目，涵盖情绪、躯体及行为等多维度症状，依据症状频度与强度分别按0–2分（三级）或0–4分（五级）计分，理论总分上限52分，分值越高提示抑郁程度越重。该工具不作为独立诊断依据，需结合临床综合判断。<br>
+                    <span class="hamd-range">总分范围 0~52 分:≤7 正常 | 8~17 轻度 | 18~24 中度 | ≥25 重度</span>
+                </div>
+
+                <!-- HAMD详情 -->
+                <details class="hamd-details">
+                    <summary>
+                        <i class="fas fa-chevron-down"></i> 查看17项HAMD详细评分(具体因子)
+                    </summary>
+                    <div class="hamd-grid" id="hamdScoresList">
+                        <!-- 由JavaScript动态生成 -->
+                    </div>
+                </details>
+            </div>
+            
+            <!-- 操作按钮 -->
+            <div class="action-buttons">
+                <button class="btn-secondary" id="exportBtn">
+                    <i class="fas fa-download"></i> 导出报告
+                </button>
+                <button class="btn-primary" id="newAssessmentBtn">
+                    <i class="fas fa-redo"></i> 新的评估
+                </button>
+            </div>
+        </div>
+
+        <!-- 人机交互对话区域 -->
+        <div id="chatArea" class="chat-container hidden">
+            <h3><i class="fas fa-comments"></i> 与AI助手对话</h3>
+            <button id="clearChatBtn" class="chat-clear-btn" title="清空对话">
+                <i class="fas fa_trash-alt"></i> 清空
+            </button>
+            <div class="chat-messages" id="chatMessages"></div>
+                <!-- 动态消息显示 -->
+            <div class="chat-input-area">
+                <!-- 语音输入 -->
+                <button id="voiceInputBtn" class="voice-input-btn" title="按住说话" style="flex-shrink: 0;">
+                    <i class="fas fa-microphone"></i>
+                </button>
+                <span id="voiceHint" class="voice-hint hidden">松手发送</span>
+                <!-- 文本输入框 -->
+                <input type="text" id="chatInput" placeholder="输入你的问题..." autocomplete="off" style="flex: 1; margin: 0 10px;min-height: 47px;">
+                <!-- 发送按钮 -->
+                <button id="sendChatBtn" class="btn-primary" style="width: auto; flex-shrink: 0;min-height: 47px;">
+                    <i class="fas fa-paper-plane"></i> 发送
+                </button>
+            </div>
+            <div class="chat-footer">
+                <small>AI 助手会主动询问你的近况，帮助全面评估。</small>
+            </div>
+        </div>
+
+        <!-- 页脚 -->
+        <footer class="footer">
+            <p><i class="fas fa-shield-alt"></i> 隐私声明：所有音频数据仅用于分析，评估完成后自动删除</p>
+            <p class="footer-note">本评估结果仅供参考，不能替代专业医疗诊断</p>
+        </footer>
+    </div>
+</div>
+
+<script src="/static/script.js"></script>
+</body>
+</html>
