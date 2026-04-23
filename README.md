@@ -125,8 +125,6 @@ depression_assessment/
 ├── models_cache/               # 模型文件（挂载）
 ├── data/                       # SQLite 数据库
 ├── requirements.txt
-├── Dockerfile
-├── docker-compose.yml
 ├── run.py
 └── README.md
 ```
