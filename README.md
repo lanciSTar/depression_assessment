@@ -29,7 +29,7 @@
 | 对话生成 | Qwen2.5-7B 基座 |
 | 前端 | HTML5 / CSS3 / JavaScript（原生） |
 | 数据库 | SQLite |
-| 部署 | Docker / 传统服务器 |
+| 部署 | 传统服务器 |
 
 ---
 
@@ -72,7 +72,7 @@
 1. **克隆仓库**
 
    ```bash
-   git clone https://github.com/your-repo/depression-assessment.git
+   git clone https://github.com/lanciSTar/depression_assessment.git
    cd depression-assessment
    ```
 
