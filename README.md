@@ -21,7 +21,6 @@
 ## 技术架构
 
 | 模块 | 技术栈 |
-
 |-------|--------|
 | 后端框架 | FastAPI（Python） |
 | 语音识别 | SenseVoiceSmall（FunASR） |
