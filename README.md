@@ -73,7 +73,7 @@
 
    ```bash
    git clone https://github.com/lanciSTar/depression_assessment.git
-   cd depression-assessment
+   cd depression_assessment
    ```
 
 2. **安装依赖**
