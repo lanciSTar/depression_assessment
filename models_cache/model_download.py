@@ -18,7 +18,7 @@ else:
     print("Qwen模型不存在，开始下载")
     model_1 = snapshot_download(
         "Qwen/Qwen2.5-7B-Instruct",
-        Qwen,
+        cache_dir=Qwen,
     )
     
     
