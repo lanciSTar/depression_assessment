@@ -6,8 +6,8 @@ current_dir = os.path.dirname(__file__)
 Qwen = os.path.join(current_dir,  "Qwen","Qwen2.5-7B-Instruct")
 SenseVoiceSmall = os.path.join(current_dir,  "iic","SenseVoiceSmall")
 
-os.makedirs(Qwen,exist_ok=True)
-os.makedirs(SenseVoiceSmall,exist_ok=True)
+# os.makedirs(Qwen,exist_ok=True)
+# os.makedirs(SenseVoiceSmall,exist_ok=True)
 
 
 
@@ -18,7 +18,8 @@ else:
     print("Qwen模型不存在，开始下载")
     model_1 = snapshot_download(
         "Qwen/Qwen2.5-7B-Instruct",
-        cache_dir=Qwen,
+        revision="master",
+        cache_dir=current_dir,
     )
     
     
@@ -29,5 +30,6 @@ else:
     print("SenseVoiceSmall不存在，开始下载")
     model_2 = snapshot_download(
         "iic/SenseVoiceSmall",
-        cache_dir=SenseVoiceSmall
+        revision="master",
+        cache_dir=current_dir,
     )
