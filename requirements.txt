@@ -3,5 +3,4 @@ fastapi
 uvicorn
 librosa
 funasr
---find-links https://download.pytorch.org/whl/
 torch
