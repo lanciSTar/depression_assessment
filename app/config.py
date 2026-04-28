@@ -23,8 +23,8 @@ SDS_SCALER_PATH = os.path.join(CACHE_DIR, "sds_scaler.pkl")
 AUDIO_SR = 16000
 
 # 综合评估权重（可调）
-WEIGHT_VOICE_SDS = 0.3         # 语音SDS分数权重
-WEIGHT_TEXT_HAMD = 0.7         # 文本HAMD总分权重（未来可改为各因子加权）
+WEIGHT_VOICE_SDS = 0.4         # 语音SDS分数权重
+WEIGHT_TEXT_HAMD = 0.6         # 文本HAMD总分权重（未来可改为各因子加权）
 
 # 抑郁程度分级（HAMD总分）
 HAMD_LEVELS = [
