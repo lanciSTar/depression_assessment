@@ -21,7 +21,7 @@ def load_hamd_model():
         base_model = AutoModelForCausalLM.from_pretrained(
             BASE_MODEL, 
             dtype=torch.bfloat16, 
-            device_map="auto",    
+            device_map="cuda",    
             low_cpu_mem_usage=True, #如果显存不足，可以设置为 True 来降低 CPU 内存占用，但会增加加载时间
         )
         model = PeftModel.from_pretrained(base_model, LORA_PATH)
