@@ -20,7 +20,7 @@ def predict_row_score(text):
 {text}<|im_end|>
 <|im_start|>assistant
 """
-    inputs = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=2048).to(device= "auto") #type: ignore
+    inputs = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=2048).to(device= "cuda") #type: ignore
     with torch.no_grad():
         outputs = model.generate(**inputs, temperature=0.1, do_sample=False, max_new_tokens=60)
     res = tokenizer.decode(outputs[0], skip_special_tokens=True).split("assistant")[-1].strip() #type: ignore
