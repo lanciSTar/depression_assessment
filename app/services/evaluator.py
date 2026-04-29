@@ -32,8 +32,10 @@ def HAMD_score(audio_path):
     return HAMD_norm   
 
 
-def evaluate(SDS_norm,HAMD_norm):
+def evaluate(SDS_row,HAMD_row):
     """SDS和HAMD加权重 再分析"""
+    SDS_norm = SDS_row
+    HAMD_norm = HAMD_row / 52 * 100
     total_norm = WEIGHT_VOICE_SDS * SDS_norm + WEIGHT_TEXT_HAMD * HAMD_norm
     """
     正常-轻度:53*0.4 + 13.5*0.6 = 21.2 + 8.1 = 29.3 ≈ 30分
@@ -44,10 +46,10 @@ def evaluate(SDS_norm,HAMD_norm):
     if total_norm <= 30:
         level = "正常/无抑郁"
         advice = "评估结果正常，保持健康生活。"
-    elif total_norm <= 50:
+    elif total_norm <= 46:
         level = "轻度抑郁"
         advice = "可能存在轻度抑郁，建议关注情绪变化，可尝试心理咨询。"
-    elif total_norm <= 70:
+    elif total_norm <= 57:
         level = "中度抑郁"
         advice = "中度抑郁倾向，建议前往精神心理科进一步评估。"
     else:
